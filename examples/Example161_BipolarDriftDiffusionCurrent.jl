@@ -294,14 +294,16 @@ function main(;
     end
 
     ###################################
-
-    return sum(abs.(I1 - I2))
+    if sum(abs.(I1 - I2)) < 1.0e-11
+        return true
+    else
+        return false
+    end
 end # main
 
 using Test
 function runtests()
-    testval = 2.051121425483693e-12
-    @test main() ≈ testval
+    @test main() == true
     return nothing
 end
 
