@@ -26,7 +26,7 @@ using GridVisualize
 
 function main(;
         n = 20, # number of nodes
-        Plotter = Plotter,
+        Plotter = nothing,
         plotting = false,
         verbose = false
     )
