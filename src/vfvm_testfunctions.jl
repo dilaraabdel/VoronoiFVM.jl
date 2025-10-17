@@ -339,7 +339,7 @@ function integrate_displacement_nodebatch(
             # source term cancels out
             function asm_res(idof, ispec)
                 return integral[ispec] += node.fac *
-                    ((rea[ispec] - reaold[ispec]) ) * tstepinv * tf[node.index]
+                    ((rea[ispec] - reaold[ispec])) * tstepinv * tf[node.index]
             end
             assemble_res(node, system, asm_res)
         end

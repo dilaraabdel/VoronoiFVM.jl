@@ -201,12 +201,12 @@ function main(;
     inival2[ipsi, :] = asinh(Cn / 2) .+ ((asinh(-Cp / 2) + DirichletVal) - asinh(Cn / 2)) ./ h_total .* coord
 
     solPrecond = solve(sys, inival = inival2, times = (0.0, tPrecond), control = control)
-    control.Δt_min   = 1.0e-3
-    control.Δt       = 1.0e-3
+    control.Δt_min = 1.0e-3
+    control.Δt = 1.0e-3
     solRamp = solve(sys, inival = solPrecond.u[end], times = (tPrecond, tPrecond + tRamp), control = control)
     #####
-    control.Δt_min   = 1.0e-3
-    control.Δt       = 1.0e-3
+    control.Δt_min = 1.0e-3
+    control.Δt = 1.0e-3
     solExt = solve(sys, inival = solRamp.u[end], times = (tPrecond + tRamp, tEnd), control = control)
 
     ################################################################################
@@ -239,16 +239,16 @@ function main(;
         IIDisp = VoronoiFVM.integrate_displacement(sys, tf, solution, inival, Δt)
 
         push!(In1, II[iphin]); push!(Ip1, II[iphip]); push!(Iψ1, IIDisp[ipsi])
-        push!(I1, In1[istep-1] + Ip1[istep-1] + Iψ1[istep-1])
+        push!(I1, In1[istep - 1] + Ip1[istep - 1] + Iψ1[istep - 1])
 
-        push!(I3, In1[istep-1] + Ip1[istep-1])
+        push!(I3, In1[istep - 1] + Ip1[istep - 1])
 
         ## Variant 2
         IIEdge = VoronoiFVM.integrate_edgebatch(sys, tf, solution, inival, Δt)
         IIDispEdge = VoronoiFVM.integrate_displacement_edgebatch(sys, tf, solution, inival, Δt)
 
         push!(In2, IIEdge[iphin]); push!(Ip2, IIEdge[iphip]); push!(Iψ2, IIDispEdge[ipsi])
-        push!(I2, In2[istep-1] + Ip2[istep-1] + Iψ2[istep-1])
+        push!(I2, In2[istep - 1] + Ip2[istep - 1] + Iψ2[istep - 1])
 
     end
 
@@ -260,7 +260,7 @@ function main(;
 
     if plotting
 
-        vis1 = GridVisualizer(;layout=(3,1), xlabel = "space", ylabel = "potential", legend = :lt, Plotter = Plotter, fignumber = 1)
+        vis1 = GridVisualizer(; layout = (3, 1), xlabel = "space", ylabel = "potential", legend = :lt, Plotter = Plotter, fignumber = 1)
 
         sol1 = solExt.u[1]
         sol2 = solExt.u[end]
@@ -275,7 +275,7 @@ function main(;
         scalarplot!(vis1[3, 1], coord, sol2[ipsi, :]; color = :lightblue, label = "psi (end)", linewidth = 5, clear = false)
 
         ###################
-        vis2 = GridVisualizer(;layout=(3,1), xlabel = "time", ylabel = "current", legend = :lt, xscale = :log, yscale =:log, Plotter = Plotter, fignumber = 2)
+        vis2 = GridVisualizer(; layout = (3, 1), xlabel = "time", ylabel = "current", legend = :lt, xscale = :log, yscale = :log, Plotter = Plotter, fignumber = 2)
 
         scalarplot!(vis2[1, 1], tvalues_shift[2:end], abs.(In1); color = :darkgreen, label = "Jn", linewidth = 5, clear = false)
         scalarplot!(vis2[1, 1], tvalues_shift[2:end], abs.(Ip1); color = :darkred, label = "Jp", clear = false)
@@ -289,13 +289,13 @@ function main(;
         #####
         scalarplot!(vis2[3, 1], tvalues_shift[2:end], abs.(I1); color = :red, linestyle = :solid, linewidth = 5, label = "Jtot (#1)", clear = false)
         scalarplot!(vis2[3, 1], tvalues_shift[2:end], abs.(I2); color = :green, linestyle = :dash, label = "Jtot (#2)", clear = false)
-        scalarplot!(vis2[3, 1], tvalues_shift[2:end], abs.(I3); linestyle =:solid, color = :gray, label = "Jtot without disp", clear = false)
+        scalarplot!(vis2[3, 1], tvalues_shift[2:end], abs.(I3); linestyle = :solid, color = :gray, label = "Jtot without disp", clear = false)
 
     end
 
     ###################################
 
-    return sum(abs.(I1-I2))
+    return sum(abs.(I1 - I2))
 end # main
 
 using Test
