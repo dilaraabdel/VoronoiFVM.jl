@@ -108,7 +108,7 @@ We rely on the reformulation [Gajewski, WIAS Report No 6, 1993]
 ``\\int_{\\Gamma} \\vec J_i \\cdot \\vec n ds =
 \\int_{\\Omega} \\nabla T \\cdot \\vec J_i dx +
 \\int_{\\Omega} T \\nabla \\cdot \\vec J_i  dx``.
-Both integral contributions are calculated seperaetly.
+Both integral contributions are calculated separately.
 """
 function integrate(
         system::AbstractSystem,
@@ -120,8 +120,8 @@ function integrate(
         data = system.physics.data
     ) where {Tv}
 
-    integral1 = integrate_nodebatch(system, tf, U, Uold, tstep; params = params, data = data)
-    integral2 = integrate_edgebatch(system, tf, U, Uold, tstep; params = params, data = data)
+    integral1 = integrate_nodebatch(system, tf, U, Uold, tstep; params, data)
+    integral2 = integrate_edgebatch(system, tf, U, Uold, tstep; params, data)
 
     return integral1 .+ integral2
 end
@@ -267,7 +267,7 @@ end
 """
 $(SIGNATURES)
 
-Calculate test function integral for the time time derivative of a current density. More precicesly, this method
+Calculate test function integral for the time derivative of a current density. More precicesly, this method
 computes the current ``\\int_{\\Gamma} \\partial_t \\vec J_i \\cdot \\vec n ds`` through a contact ``\\Gamma``
 using a test function approach.
 This method can be used for general coupled systems such as Poisson-Nernst Planck or the van Roosbroeck model, where an internal electric through the moving charge carriers is considered.
@@ -275,15 +275,15 @@ We rely on the reformulation [Gajewski, WIAS Report No 6, 1993]
 ``\\int_{\\Gamma} \\partial_t \\vec J_i \\cdot \\vec n ds =
 \\int_{\\Omega} \\nabla T \\cdot \\partial_t \\vec J_i dx +
 \\int_{\\Omega} T \\partial_t \\nabla \\cdot \\vec J_i  dx``.
-Both integral contributions are calculated seperaetly.
+Both integral contributions are calculated separately.
 """
 function integrate_displacement(
         system::AbstractSystem, tf, U::AbstractMatrix{Tv},
         Uold::AbstractMatrix{Tv}, tstep; params = Tv[], data = system.physics.data
     ) where {Tv}
 
-    integral1 = integrate_displacement_nodebatch(system, tf, U, Uold, tstep; params = params, data = data)
-    integral2 = integrate_displacement_edgebatch(system, tf, U, Uold, tstep; params = params, data = data)
+    integral1 = integrate_displacement_nodebatch(system, tf, U, Uold, tstep; params, data)
+    integral2 = integrate_displacement_edgebatch(system, tf, U, Uold, tstep; params, data)
 
     return integral1 .+ integral2
 end
