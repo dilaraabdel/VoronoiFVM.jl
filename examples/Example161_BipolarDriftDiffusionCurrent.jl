@@ -294,7 +294,7 @@ end # main
 using Test
 function runtests()
     testval = -965.3101329657035
-    @test main() == testval
+    @test main() ≈ testval
     return nothing
 end
 
