@@ -8,8 +8,8 @@
 
 ## v2.13
   - subdivide the `integrate` method into the two submethods `integrate_edgebatch` and `integrate_edgebatch` to have access to both integrals
-  - add the method `integrate_displacement` for charge transport applications of the type Poisson + drift-diffusion to account for the electric displacement flux
-  - add example `Example161_BipolarDriftDiffusionCurrent.jl` which explores the new integrate methods
+  - add the method `integrate_flux_time_derivative` for charge transport applications of the type Poisson + drift-diffusion to account for the electric displacement flux
+  - add example `Example161_BipolarDriftDiffusionCurrent.jl` which explores the (new) integrate methods
 
 ## v2.12.2 August 1, 2025
   - SparseConnectivitryTracer v1

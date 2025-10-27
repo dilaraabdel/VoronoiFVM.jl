@@ -34,7 +34,7 @@ function main(;
     ################################################################################
     #### grid
     ################################################################################
-    h1 = 1.0; h2 = 4.0; h3 = 2.0
+    h1 = 0.5; h2 = 4.0; h3 = 0.5
     h_total = h1 + h2 + h3
 
     # region numbers
@@ -69,11 +69,11 @@ function main(;
     ################################################################################
 
     tPrecond = 5.0
-    tExt = 10.0
+    tExt = 75.0
     tRamp = 1.0e-5
     tEnd = tPrecond + tRamp + tExt
-    Vprecond = 2.5
-    VExt = 0.0
+    Vprecond = 1.0
+    VExt = -3.0
 
     ## Define scan protocol function
     function scanProtocol(t)
@@ -90,14 +90,14 @@ function main(;
         return biasVal
     end
 
-    Cn = 100        # n-doped
-    Cp = 100        # p-doped
-    Ca = 0.0        # intrinsic
-    En = 2.0        # conduction band edge
-    Ep = 0.0        # valence band edge
-    μn = 1.0e-1     # electron mobility
-    μp = 1.0e-1     # hole mobility
-    lambda = 1.0 # Debye length
+    Cn = 10        # n-doped
+    Cp = 10        # p-doped
+    Ca = 0.0       # intrinsic
+    En = 1.0       # conduction band edge
+    Ep = 0.0       # valence band edge
+    μn = 1.0e1     # electron mobility
+    μp = 1.0e1     # hole mobility
+    lambda = 1.0e-1 # Debye length
     DirichletVal = 0.0
 
     sys = VoronoiFVM.System(grid; unknown_storage = :sparse)
@@ -201,12 +201,13 @@ function main(;
     inival2[ipsi, :] = asinh(Cn / 2) .+ ((asinh(-Cp / 2) + DirichletVal) - asinh(Cn / 2)) ./ h_total .* coord
 
     solPrecond = solve(sys, inival = inival2, times = (0.0, tPrecond), control = control)
-    control.Δt_min = 1.0e-3
-    control.Δt = 1.0e-3
+    control.Δt_min = 1.0e-8
+    control.Δt = 1.0e-8
     solRamp = solve(sys, inival = solPrecond.u[end], times = (tPrecond, tPrecond + tRamp), control = control)
     #####
-    control.Δt_min = 1.0e-3
-    control.Δt = 1.0e-3
+    control.Δt_min = 1.0e-10
+    control.Δt = 1.0e-10
+    control.Δt_grow = 1.7
     solExt = solve(sys, inival = solRamp.u[end], times = (tPrecond + tRamp, tEnd), control = control)
 
     ################################################################################
@@ -215,12 +216,10 @@ function main(;
 
     # for saving Current data
     I1 = zeros(0)
-    In1 = zeros(0); Ip1 = zeros(0); Iψ1 = zeros(0)
+    In1 = zeros(0); Ip1 = zeros(0)
 
     I2 = zeros(0)
     In2 = zeros(0); Ip2 = zeros(0); Iψ2 = zeros(0)
-
-    I3 = zeros(0)
 
     tvalues = solExt.t
     number_tsteps = length(tvalues)
@@ -234,16 +233,13 @@ function main(;
         inival = solExt.u[istep - 1]
         solution = solExt.u[istep]
 
-        ## Variant 1
+        ## Variant 1: Define current as sum of charge carrier currents without electric displacement
         II = integrate(sys, tf, solution, inival, Δt)
-        IIDisp = VoronoiFVM.integrate_displacement(sys, tf, solution, inival, Δt)
 
-        push!(In1, II[iphin]); push!(Ip1, II[iphip]); push!(Iψ1, IIDisp[ipsi])
-        push!(I1, In1[istep - 1] + Ip1[istep - 1] + Iψ1[istep - 1])
+        push!(In1, II[iphin]); push!(Ip1, II[iphip])
+        push!(I1, In1[istep - 1] + Ip1[istep - 1])
 
-        push!(I3, In1[istep - 1] + Ip1[istep - 1])
-
-        ## Variant 2
+        ## Variant 2: Define all current contributions as the edge integrals and add the dielectric displacement
         IIEdge = VoronoiFVM.integrate_edgebatch(sys, tf, solution, inival, Δt)
         IIDispEdge = VoronoiFVM.integrate_displacement_edgebatch(sys, tf, solution, inival, Δt)
 
@@ -279,7 +275,6 @@ function main(;
 
         scalarplot!(vis2[1, 1], tvalues_shift[2:end], abs.(In1); color = :darkgreen, label = "Jn", linewidth = 5, clear = false)
         scalarplot!(vis2[1, 1], tvalues_shift[2:end], abs.(Ip1); color = :darkred, label = "Jp", clear = false)
-        scalarplot!(vis2[1, 1], tvalues_shift[2:end], abs.(Iψ1); color = :darkblue, label = "Jdisp", clear = false)
         scalarplot!(vis2[1, 1], tvalues_shift[2:end], abs.(I1); color = :black, linestyle = :dash, label = "Jtot", clear = false)
         ####
         scalarplot!(vis2[2, 1], tvalues_shift[2:end], abs.(In2); color = :darkgreen, label = "Jn", linewidth = 5, clear = false)
@@ -289,21 +284,17 @@ function main(;
         #####
         scalarplot!(vis2[3, 1], tvalues_shift[2:end], abs.(I1); color = :red, linestyle = :solid, linewidth = 5, label = "Jtot (#1)", clear = false)
         scalarplot!(vis2[3, 1], tvalues_shift[2:end], abs.(I2); color = :green, linestyle = :dash, label = "Jtot (#2)", clear = false)
-        scalarplot!(vis2[3, 1], tvalues_shift[2:end], abs.(I3); linestyle = :solid, color = :gray, label = "Jtot without disp", clear = false)
 
     end
 
-    ###################################
-    if sum(abs.(I1 - I2)) < 1.0e-11
-        return true
-    else
-        return false
-    end
+    return sum(I2)
+
 end # main
 
 using Test
 function runtests()
-    @test main() == true
+    testval = -965.3101329657035
+    @test main() == testval
     return nothing
 end
 

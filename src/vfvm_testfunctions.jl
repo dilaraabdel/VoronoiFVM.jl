@@ -268,96 +268,14 @@ end
 $(SIGNATURES)
 
 Calculate test function integral for the time time derivative of a current density. More precicesly, this method
-computes the current ``\\int_{\\Gamma} \\partial_t \\vec J_i \\cdot \\vec n ds`` through a contact ``\\Gamma``
-using a test function approach.
+computes the current ``\\int_{\\Omega} \\nabla T \\cdot \\partial_t \\vec J_i dx`` using a test function approach.
 This method can be used for general coupled systems such as Poisson-Nernst Planck or the van Roosbroeck model, where an internal electric through the moving charge carriers is considered.
-We rely on the reformulation [Gajewski, WIAS Report No 6, 1993]
-``\\int_{\\Gamma} \\partial_t \\vec J_i \\cdot \\vec n ds =
-\\int_{\\Omega} \\nabla T \\cdot \\partial_t \\vec J_i dx +
-\\int_{\\Omega} T \\partial_t \\nabla \\cdot \\vec J_i  dx``.
-Both integral contributions are calculated seperaetly.
 """
-function integrate_displacement(
+function integrate_flux_time_derivative(
         system::AbstractSystem, tf, U::AbstractMatrix{Tv},
         Uold::AbstractMatrix{Tv}, tstep; params = Tv[], data = system.physics.data
     ) where {Tv}
 
-    integral1 = integrate_displacement_nodebatch(system, tf, U, Uold, tstep; params = params, data = data)
-    integral2 = integrate_displacement_edgebatch(system, tf, U, Uold, tstep; params = params, data = data)
-
-    return integral1 .+ integral2
-end
-
-"""
-$(SIGNATURES)
-
-Calculate one of the two test function integrals
-``\\int_{\\Omega} T \\partial_t \\nabla \\cdot \\vec J_i  dx``.
-By assumption, we assume that there is no present storage term.
-"""
-function integrate_displacement_nodebatch(
-        system::AbstractSystem, tf, U::AbstractMatrix{Tv},
-        Uold::AbstractMatrix{Tv}, tstep; params = Tv[], data = system.physics.data
-    ) where {Tv}
-
-    grid = system.grid
-    nspecies = num_species(system)
-    integral = zeros(Tv, nspecies)
-    tstepinv = 1.0 / tstep
-
-    nparams = system.num_parameters
-    @assert nparams == length(params)
-
-    # !!! params etc
-    physics = system.physics
-    node = Node(system, 0.0, 1.0, params)
-
-    UK = Array{Tv, 1}(undef, nspecies + nparams)
-    UKold = Array{Tv, 1}(undef, nspecies + nparams)
-
-    if nparams > 0
-        UK[(nspecies + 1):end] .= params
-        UKold[(nspecies + 1):end] .= params
-    end
-
-    rea_eval = ResEvaluator(physics, data, :reaction, UK, node, nspecies + nparams)
-    reaold_eval = ResEvaluator(physics, data, :reaction, UKold, node, nspecies + nparams)
-
-    for item in nodebatch(system.assembly_data)
-        for inode in noderange(system.assembly_data, item)
-            _fill!(node, system.assembly_data, inode, item)
-            for ispec in 1:nspecies
-                UK[ispec] = U[ispec, node.index]
-                UKold[ispec] = Uold[ispec, node.index]
-            end
-
-            evaluate!(rea_eval, UK)
-            rea = res(rea_eval)
-            evaluate!(reaold_eval, UKold)
-            reaold = res(reaold_eval)
-
-            # source term cancels out
-            function asm_res(idof, ispec)
-                return integral[ispec] += node.fac *
-                    ((rea[ispec] - reaold[ispec])) * tstepinv * tf[node.index]
-            end
-            assemble_res(node, system, asm_res)
-        end
-
-    end
-    return integral
-end
-
-"""
-$(SIGNATURES)
-
-Calculate one of the two test function integrals
-``\\int_{\\Omega} \\nabla T \\cdot \\partial_t \\vec J_i dx``.
-"""
-function integrate_displacement_edgebatch(
-        system::AbstractSystem, tf, U::AbstractMatrix{Tv},
-        Uold::AbstractMatrix{Tv}, tstep; params = Tv[], data = system.physics.data
-    ) where {Tv}
     grid = system.grid
     nspecies = num_species(system)
     integral = zeros(Tv, nspecies)
